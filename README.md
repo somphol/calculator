@@ -8,6 +8,7 @@
 
 [![Verify](https://github.com/somphol/calculator/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/somphol/calculator/actions/workflows/verify.yml)
 [![Deploy](https://github.com/somphol/calculator/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/somphol/calculator/actions/workflows/deploy.yml)
+[![Release](https://img.shields.io/github/v/release/somphol/calculator?color=6366f1)](https://github.com/somphol/calculator/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-8b5cf6.svg)](LICENSE)
 [![Dependencies: 0](https://img.shields.io/badge/dependencies-0-22d3ee.svg)](scientific-calculator.html)
 [![Single file](https://img.shields.io/badge/build-none-6366f1.svg)](scientific-calculator.html)
@@ -151,8 +152,10 @@ block and runs it in isolation, so the tested code is the code that ships.
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
 ├── LICENSE
+├── README.md
 ├── SECURITY.md
-└── README.md
+├── robots.txt                      # Deployed with the site
+└── sitemap.xml                     # Deployed with the site
 ```
 
 ## Verification

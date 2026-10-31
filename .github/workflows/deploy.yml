@@ -36,6 +36,8 @@ jobs:
           mkdir -p _site
           cp scientific-calculator.html _site/index.html
           cp docs/social-card.png _site/social-card.png
+          cp robots.txt _site/robots.txt
+          cp sitemap.xml _site/sitemap.xml
           cp .nojekyll _site/.nojekyll
           ls -la _site
 
