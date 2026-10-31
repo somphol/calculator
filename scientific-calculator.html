@@ -1,0 +1,2701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#060812" />
+<title>NOVA — Scientific Calculator</title>
+<style>
+  :root {
+    --bg: #05070e;
+    --text: #f5f7ff;
+    --muted: #8d99b8;
+    --muted-2: #626d8a;
+    --accent: #8b5cf6;
+    --accent-2: #22d3ee;
+    --danger: #fb7185;
+    --key: rgba(255, 255, 255, 0.055);
+    --key-hover: rgba(255, 255, 255, 0.095);
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.14);
+    --radius: 28px;
+    --mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", "Roboto Mono", Consolas, monospace;
+    --sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { min-height: 100%; }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 28px 18px;
+    overflow-x: hidden;
+    color: var(--text);
+    font-family: var(--sans);
+    background:
+      radial-gradient(900px 650px at 12% 6%, rgba(91, 76, 255, 0.19), transparent 60%),
+      radial-gradient(800px 600px at 88% 14%, rgba(14, 165, 233, 0.13), transparent 58%),
+      radial-gradient(720px 580px at 76% 90%, rgba(217, 70, 239, 0.10), transparent 62%),
+      linear-gradient(145deg, #070913 0%, #04060d 52%, #070913 100%);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.32;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+    background-size: 54px 54px;
+    mask-image: radial-gradient(circle at 50% 42%, black 5%, transparent 72%);
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.15;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+    mix-blend-mode: soft-light;
+  }
+
+  button { font: inherit; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+
+  .ambient {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(72px);
+    opacity: 0.42;
+    animation: drift 20s ease-in-out infinite alternate;
+  }
+
+  .orb-a {
+    width: 360px;
+    height: 360px;
+    left: -110px;
+    top: 18%;
+    background: radial-gradient(circle, rgba(99,102,241,.58), transparent 66%);
+  }
+
+  .orb-b {
+    width: 420px;
+    height: 420px;
+    right: -150px;
+    top: 4%;
+    background: radial-gradient(circle, rgba(34,211,238,.32), transparent 68%);
+    animation-delay: -7s;
+  }
+
+  .orb-c {
+    width: 330px;
+    height: 330px;
+    right: 16%;
+    bottom: -140px;
+    background: radial-gradient(circle, rgba(236,72,153,.25), transparent 68%);
+    animation-delay: -12s;
+  }
+
+  @keyframes drift {
+    from { transform: translate3d(-12px, -8px, 0) scale(1); }
+    to { transform: translate3d(18px, 16px, 0) scale(1.07); }
+  }
+
+  .workspace {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .calculator {
+    position: relative;
+    width: 464px;
+    padding: 20px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,.115);
+    background:
+      linear-gradient(155deg, rgba(21, 27, 48, .88), rgba(8, 11, 21, .78)),
+      rgba(9, 12, 22, .82);
+    box-shadow:
+      0 42px 100px rgba(0, 0, 0, .55),
+      0 8px 28px rgba(0, 0, 0, .32),
+      inset 0 1px 0 rgba(255,255,255,.14),
+      inset 0 -1px 0 rgba(255,255,255,.03);
+    backdrop-filter: blur(28px) saturate(145%);
+    -webkit-backdrop-filter: blur(28px) saturate(145%);
+    transition: width .45s cubic-bezier(.2, .8, .2, 1), background .3s ease;
+    animation: card-in .7s cubic-bezier(.2, .8, .2, 1) both;
+    isolation: isolate;
+  }
+
+  .calculator::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(450px 180px at 50% -14%, rgba(139,92,246,.14), transparent 70%);
+    z-index: -1;
+  }
+
+  .calculator.scientific { width: 544px; }
+
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(22px) scale(.975); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+  }
+
+  .brand-mark {
+    width: 41px;
+    height: 41px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    color: #e9e5ff;
+    background:
+      linear-gradient(145deg, rgba(139,92,246,.34), rgba(34,211,238,.1)),
+      rgba(255,255,255,.04);
+    border: 1px solid rgba(167,139,250,.3);
+    box-shadow: 0 8px 24px rgba(76,29,149,.24), inset 0 1px 0 rgba(255,255,255,.2);
+  }
+
+  .brand-mark svg { width: 22px; height: 22px; }
+
+  .eyebrow {
+    display: block;
+    margin-bottom: 3px;
+    color: #a5b1d0;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+  }
+
+  .brand h1 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1;
+    font-weight: 650;
+    letter-spacing: -.02em;
+  }
+
+  .brand h1 span {
+    color: var(--muted-2);
+    font-weight: 450;
+  }
+
+  .top-actions { display: flex; align-items: center; gap: 7px; }
+
+  .icon-btn {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.035);
+    color: var(--muted);
+    cursor: pointer;
+    transition: .18s ease;
+  }
+
+  .icon-btn:hover {
+    color: var(--text);
+    background: rgba(255,255,255,.085);
+    border-color: var(--line-strong);
+    transform: translateY(-1px);
+  }
+
+  .icon-btn svg { width: 17px; height: 17px; }
+
+  .history-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #8b5cf6, #22d3ee);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  }
+
+  .mode-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .segmented {
+    display: flex;
+    padding: 3px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.07);
+    background: rgba(0,0,0,.22);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.3);
+  }
+
+  .segmented button {
+    border: 0;
+    border-radius: 9px;
+    padding: 7px 13px;
+    color: var(--muted);
+    background: transparent;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    cursor: pointer;
+    transition: .2s ease;
+  }
+
+  .segmented button:hover { color: var(--text); }
+
+  .segmented button.active {
+    color: #fff;
+    background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.065));
+    box-shadow: 0 1px 0 rgba(255,255,255,.1) inset, 0 3px 12px rgba(0,0,0,.18);
+  }
+
+  .angle-toggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 11px;
+    border-radius: 10px;
+    border: 1px solid rgba(34,211,238,.17);
+    background: rgba(34,211,238,.055);
+    color: #9ceaf7;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    cursor: pointer;
+    transition: .2s ease;
+  }
+
+  .angle-toggle:hover {
+    background: rgba(34,211,238,.1);
+    border-color: rgba(34,211,238,.3);
+  }
+
+  .angle-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 9px currentColor;
+  }
+  .display {
+    position: relative;
+    min-height: 148px;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 16px 13px;
+    overflow: hidden;
+    border-radius: 19px;
+    border: 1px solid rgba(255,255,255,.1);
+    background:
+      linear-gradient(180deg, rgba(1, 4, 11, .7), rgba(10, 15, 29, .46)),
+      rgba(2, 5, 13, .35);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.075),
+      inset 0 -18px 40px rgba(0,0,0,.14),
+      0 1px 0 rgba(255,255,255,.025);
+  }
+
+  .display::before {
+    content: "";
+    position: absolute;
+    width: 210px;
+    height: 130px;
+    right: -72px;
+    top: -86px;
+    border-radius: 50%;
+    background: rgba(34,211,238,.1);
+    filter: blur(36px);
+    pointer-events: none;
+  }
+
+  .display::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: .26;
+    background: repeating-linear-gradient(180deg, transparent 0 3px, rgba(255,255,255,.018) 3px 4px);
+    border-radius: inherit;
+  }
+
+  .display-meta {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 18px;
+    margin-bottom: 6px;
+  }
+
+  .meta-left { display: flex; align-items: center; gap: 7px; }
+
+  .memory-badge,
+  .angle-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 18px;
+    padding: 0 7px;
+    border-radius: 6px;
+    color: #8e9ab8;
+    background: rgba(255,255,255,.045);
+    border: 1px solid rgba(255,255,255,.07);
+    font-family: var(--mono);
+    font-size: 8.5px;
+    font-weight: 600;
+    letter-spacing: .05em;
+  }
+
+  .memory-badge {
+    max-width: 170px;
+    overflow: hidden;
+    color: #c4b5fd;
+    border-color: rgba(167,139,250,.18);
+    background: rgba(139,92,246,.09);
+    white-space: nowrap;
+  }
+
+  .memory-badge #memoryBadgeValue {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .angle-badge {
+    color: #7dd3fc;
+    border-color: rgba(56,189,248,.14);
+    background: rgba(56,189,248,.05);
+  }
+
+  .live-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #6d7895;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    opacity: .85;
+  }
+
+  .live-status i {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #22d3ee;
+    box-shadow: 0 0 8px rgba(34,211,238,.8);
+  }
+
+  .live-status[data-tone="error"] { color: #fda4af; }
+  .live-status[data-tone="error"] i { background: #fb7185; box-shadow: 0 0 8px rgba(251,113,133,.8); }
+  .live-status[data-tone="typing"] { opacity: .55; }
+
+  body.history-open { overflow: hidden; }
+
+  .expression-wrap {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 26px;
+    overflow: hidden;
+  }
+
+  .expression {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0;
+    color: #8792ad;
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: right;
+    white-space: nowrap;
+    scrollbar-width: none;
+    letter-spacing: -.01em;
+  }
+
+  .expression::-webkit-scrollbar { display: none; }
+
+  .result-row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  .result-prefix {
+    flex: 0 0 auto;
+    color: #6d7895;
+    font-family: var(--mono);
+    font-size: 23px;
+    font-weight: 400;
+    line-height: 1;
+    transition: color .2s ease;
+  }
+
+  .result-prefix.is-error { color: #fda4af; }
+
+  .result {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: #f8faff;
+    font-family: var(--mono);
+    font-size: 43px;
+    font-weight: 550;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.13;
+    text-align: right;
+    white-space: nowrap;
+    text-overflow: clip;
+    letter-spacing: -.045em;
+    text-shadow: 0 0 28px rgba(125,211,252,.07);
+    transition: font-size .15s ease, color .18s ease;
+  }
+
+  .result.size-md { font-size: 35px; }
+  .result.size-sm { font-size: 27px; }
+  .result.size-xs { font-size: 21px; letter-spacing: -.03em; }
+  .result.is-muted { color: #66718d; text-shadow: none; }
+  .result.is-error {
+    color: #fda4af;
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 550;
+    letter-spacing: -.01em;
+    line-height: 1.25;
+    white-space: normal;
+    text-align: right;
+  }
+
+  .copy-btn {
+    flex: 0 0 auto;
+    width: 27px;
+    height: 27px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #59647f;
+    cursor: pointer;
+    opacity: .32;
+    transition: .18s ease;
+  }
+
+  .result-row:hover .copy-btn,
+  .copy-btn:focus-visible { opacity: 1; }
+
+  @media (hover: none) {
+    .copy-btn { opacity: .62; }
+  }
+
+  .copy-btn:hover {
+    color: #c4b5fd;
+    background: rgba(255,255,255,.06);
+  }
+
+  .copy-btn:disabled { pointer-events: none; opacity: 0; }
+  .copy-btn svg { width: 14px; height: 14px; }
+
+  .display.screen-flash { animation: screen-flash .45s ease; }
+  .display.screen-error { animation: screen-error .34s ease; }
+
+  @keyframes screen-flash {
+    0% { box-shadow: inset 0 0 0 1px rgba(34,211,238,0), inset 0 1px 0 rgba(255,255,255,.075); }
+    35% { box-shadow: inset 0 0 0 1px rgba(34,211,238,.28), inset 0 0 50px rgba(34,211,238,.09); }
+    100% { box-shadow: inset 0 0 0 1px rgba(34,211,238,0), inset 0 1px 0 rgba(255,255,255,.075); }
+  }
+
+  @keyframes screen-error {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    65% { transform: translateX(3px); }
+  }
+
+  .memory-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .memory-key {
+    height: 29px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #6f7a97;
+    background: rgba(255,255,255,.018);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .11em;
+    cursor: pointer;
+    transition: .17s ease;
+  }
+
+  .memory-key:hover {
+    color: #c4b5fd;
+    background: rgba(139,92,246,.08);
+    border-color: rgba(167,139,250,.13);
+  }
+
+  .memory-key:active { transform: scale(.96); }
+
+  .keypad {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+    grid-auto-rows: 52px;
+  }
+
+  .standard-keypad { grid-template-columns: repeat(4, 1fr); }
+  .scientific-keypad { grid-template-columns: repeat(5, 1fr); grid-auto-rows: 48px; }
+
+  .key {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    color: var(--text);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.038)),
+      rgba(255,255,255,.018);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.09),
+      0 2px 3px rgba(0,0,0,.09);
+    font-size: 19px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    user-select: none;
+    transition: transform .11s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease, color .16s ease;
+  }
+
+  .key:hover {
+    border-color: var(--line-strong);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.055)),
+      rgba(255,255,255,.03);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.13), 0 5px 14px rgba(0,0,0,.16);
+    transform: translateY(-1px);
+  }
+
+  .key:active {
+    transform: translateY(0) scale(.968);
+    background: rgba(255,255,255,.11);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.22);
+  }
+
+  .key:focus-visible,
+  .icon-btn:focus-visible,
+  .segmented button:focus-visible,
+  .angle-toggle:focus-visible,
+  .memory-key:focus-visible,
+  .history-main:focus-visible,
+  .history-insert:focus-visible,
+  .drawer-btn:focus-visible {
+    outline: 2px solid rgba(103,232,249,.78);
+    outline-offset: 2px;
+  }
+
+  .key-op {
+    color: #c4b5fd;
+    border-color: rgba(167,139,250,.17);
+    background:
+      linear-gradient(180deg, rgba(139,92,246,.14), rgba(139,92,246,.075)),
+      rgba(255,255,255,.012);
+    font-size: 21px;
+  }
+
+  .key-op:hover {
+    color: #ddd6fe;
+    border-color: rgba(167,139,250,.29);
+    background: linear-gradient(180deg, rgba(139,92,246,.24), rgba(139,92,246,.11));
+  }
+
+  .key-utility {
+    color: #9ba7c4;
+    background: rgba(255,255,255,.028);
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: .02em;
+  }
+
+  .key-clear {
+    color: #fda4af;
+    border-color: rgba(251,113,133,.14);
+    background: linear-gradient(180deg, rgba(251,113,133,.105), rgba(251,113,133,.04));
+  }
+
+  .key-clear:hover {
+    color: #fecdd3;
+    border-color: rgba(251,113,133,.25);
+    background: rgba(251,113,133,.14);
+  }
+
+  .key-fn {
+    color: #8be9f8;
+    border-color: rgba(34,211,238,.12);
+    background:
+      linear-gradient(180deg, rgba(34,211,238,.085), rgba(34,211,238,.035)),
+      rgba(255,255,255,.012);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .01em;
+  }
+
+  .key-fn:hover {
+    color: #cffafe;
+    border-color: rgba(34,211,238,.24);
+    background: linear-gradient(180deg, rgba(34,211,238,.16), rgba(34,211,238,.06));
+  }
+
+  .key-const {
+    color: #fcd34d;
+    border-color: rgba(250,204,21,.13);
+    background: linear-gradient(180deg, rgba(250,204,21,.08), rgba(250,204,21,.025));
+    font-size: 16px;
+    font-family: var(--mono);
+  }
+
+  .key-const:hover {
+    color: #fef3c7;
+    border-color: rgba(250,204,21,.25);
+    background: rgba(250,204,21,.12);
+  }
+
+  .key-math { font-family: var(--mono); }
+  .key-math sup { font-size: 8px; position: relative; top: -.42em; margin-left: 1px; }
+  .key-math .sqrt-symbol { font-size: 20px; line-height: 1; }
+
+  .key-equals {
+    color: #fff;
+    border-color: rgba(167,139,250,.36);
+    background: linear-gradient(135deg, #22d3ee 0%, #6366f1 52%, #8b5cf6 100%);
+    box-shadow:
+      0 8px 26px rgba(99,102,241,.3),
+      inset 0 1px 0 rgba(255,255,255,.28),
+      inset 0 -1px 0 rgba(0,0,0,.16);
+    font-size: 23px;
+    font-weight: 500;
+  }
+
+  .key-equals:hover {
+    background: linear-gradient(135deg, #67e8f9 0%, #818cf8 52%, #a78bfa 100%);
+    box-shadow: 0 12px 32px rgba(99,102,241,.4), inset 0 1px 0 rgba(255,255,255,.35);
+    transform: translateY(-1px);
+  }
+
+  .key-equals:active {
+    transform: scale(.968);
+    box-shadow: 0 4px 14px rgba(99,102,241,.28), inset 0 2px 5px rgba(0,0,0,.18);
+  }
+
+  .scientific-keypad .key-equals {
+    grid-row: span 2;
+    height: 100%;
+    border-radius: 15px;
+  }
+
+  .key-ans { font-family: var(--mono); font-size: 12px; }
+
+  .key-sub {
+    margin-left: 2px;
+    color: #7f8aa6;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: .02em;
+  }
+
+  .scientific-keypad [data-insert="0"] { grid-column: span 2; }
+
+  .footer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 12px;
+    color: #515b74;
+    font-size: 8.5px;
+    font-weight: 500;
+    letter-spacing: .02em;
+  }
+
+  .footer-bar .sep {
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: #3c455b;
+  }
+
+  .footer-bar kbd {
+    padding: 1px 4px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,.07);
+    background: rgba(255,255,255,.025);
+    color: #68738e;
+    font-family: var(--sans);
+    font-size: 7.5px;
+    font-weight: 600;
+  }
+
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    background: rgba(2, 4, 10, .52);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .35s ease;
+  }
+
+  .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  .history-drawer {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    bottom: 18px;
+    z-index: 40;
+    width: min(382px, calc(100vw - 36px));
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+    border-radius: 25px;
+    border: 1px solid rgba(255,255,255,.12);
+    background:
+      linear-gradient(155deg, rgba(22, 28, 49, .94), rgba(8, 11, 21, .91)),
+      rgba(9, 12, 22, .9);
+    box-shadow:
+      -24px 0 80px rgba(0,0,0,.45),
+      inset 0 1px 0 rgba(255,255,255,.13);
+    backdrop-filter: blur(30px) saturate(145%);
+    -webkit-backdrop-filter: blur(30px) saturate(145%);
+    transform: translateX(calc(100% + 36px));
+    transition: transform .42s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .42s;
+    visibility: hidden;
+  }
+
+  .history-drawer.open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform .42s cubic-bezier(.2, .8, .2, 1), visibility 0s linear 0s;
+  }
+
+  .history-drawer:focus { outline: none; }
+
+  .drawer-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 2px 14px;
+  }
+
+  .drawer-head h2 {
+    margin: 0;
+    font-size: 23px;
+    font-weight: 650;
+    letter-spacing: -.035em;
+  }
+
+  .drawer-actions { display: flex; align-items: center; gap: 6px; }
+
+  .drawer-btn {
+    height: 29px;
+    padding: 0 9px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.028);
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 650;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: .18s ease;
+  }
+
+  .drawer-btn:hover {
+    color: #fda4af;
+    border-color: rgba(251,113,133,.22);
+    background: rgba(251,113,133,.07);
+  }
+
+  .drawer-btn.icon-only {
+    width: 29px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    color: #9ba7c4;
+  }
+
+  .drawer-btn.icon-only:hover {
+    color: #fff;
+    border-color: var(--line-strong);
+    background: rgba(255,255,255,.08);
+  }
+
+  .drawer-btn svg { width: 13px; height: 13px; }
+
+  .drawer-rule {
+    height: 1px;
+    margin: 0 2px 12px;
+    background: linear-gradient(90deg, rgba(255,255,255,.1), rgba(255,255,255,.015));
+  }
+
+  .history-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 2px 4px 8px 2px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.13) transparent;
+  }
+
+  .history-list::-webkit-scrollbar { width: 5px; }
+  .history-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 8px; }
+  .history-list::-webkit-scrollbar-track { background: transparent; }
+
+  .history-item {
+    display: flex;
+    align-items: stretch;
+    border-radius: 13px;
+    border: 1px solid rgba(255,255,255,.075);
+    background: rgba(255,255,255,.025);
+    overflow: hidden;
+    transition: .18s ease;
+  }
+
+  .history-item:hover {
+    border-color: rgba(167,139,250,.2);
+    background: rgba(139,92,246,.045);
+  }
+
+  .history-main {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 11px;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+  }
+
+  .history-main-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+
+  .history-expression {
+    overflow: hidden;
+    color: #7884a1;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .history-result {
+    display: block;
+    overflow: hidden;
+    color: #eef2ff;
+    font-family: var(--mono);
+    font-size: 19px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -.03em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .history-angle {
+    flex: 0 0 auto;
+    padding: 1px 4px;
+    border-radius: 4px;
+    color: #7dd3fc;
+    background: rgba(56,189,248,.06);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: .07em;
+  }
+
+  .history-insert {
+    flex: 0 0 36px;
+    width: 36px;
+    border: 0;
+    border-left: 1px solid rgba(255,255,255,.06);
+    background: rgba(255,255,255,.012);
+    color: #59647f;
+    cursor: pointer;
+    transition: .17s ease;
+  }
+
+  .history-insert:hover {
+    color: #67e8f9;
+    background: rgba(34,211,238,.08);
+  }
+
+  .history-insert svg { width: 14px; height: 14px; }
+
+  .empty-history {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+    padding: 30px 18px;
+    color: #5d6884;
+    text-align: center;
+  }
+
+  .empty-history .empty-icon {
+    width: 47px;
+    height: 47px;
+    display: grid;
+    place-items: center;
+    border-radius: 15px;
+    border: 1px solid rgba(255,255,255,.07);
+    background: rgba(255,255,255,.025);
+    color: #65708d;
+  }
+
+  .empty-history svg { width: 21px; height: 21px; }
+
+  .empty-history strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #8995b1;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .empty-history p {
+    max-width: 210px;
+    margin: 0;
+    font-size: 10px;
+    line-height: 1.55;
+  }
+
+  .drawer-foot {
+    margin-top: 11px;
+    padding: 11px 4px 2px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    color: #515b74;
+    font-size: 9px;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 60;
+    max-width: calc(100vw - 32px);
+    padding: 10px 15px;
+    border-radius: 11px;
+    border: 1px solid rgba(255,255,255,.13);
+    background: rgba(18, 24, 42, .94);
+    color: #e9edfa;
+    box-shadow: 0 14px 45px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.09);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 10px);
+    transition: opacity .2s ease, transform .2s ease;
+    white-space: nowrap;
+  }
+
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 620px) {
+    body { padding: 12px; place-items: start center; }
+
+    .calculator,
+    .calculator.scientific {
+      width: 100%;
+      max-width: 480px;
+      padding: 15px;
+      border-radius: 24px;
+    }
+
+    .topbar { margin-bottom: 13px; }
+    .brand-mark { width: 38px; height: 38px; border-radius: 12px; }
+    .brand h1 { font-size: 15px; }
+    .mode-row { margin-bottom: 10px; }
+    .display { min-height: 134px; padding: 12px 14px 11px; border-radius: 17px; }
+    .result { font-size: 38px; }
+    .result.size-md { font-size: 31px; }
+    .result.size-sm { font-size: 25px; }
+    .result.size-xs { font-size: 19px; }
+    .result.is-error { font-size: 16px; }
+    .keypad { gap: 7px; grid-auto-rows: 46px; }
+    .scientific-keypad { grid-auto-rows: 44px; }
+    .key { border-radius: 12px; font-size: 18px; }
+    .key-op { font-size: 19px; }
+    .key-fn { font-size: 11.5px; }
+    .key-equals { font-size: 21px; }
+    .memory-strip { gap: 5px; margin-top: 8px; }
+    .footer-bar { margin-top: 10px; }
+    .history-drawer {
+      top: 10px;
+      right: 10px;
+      bottom: 10px;
+      width: min(382px, calc(100vw - 20px));
+      border-radius: 22px;
+    }
+  }
+
+  @media (max-width: 370px) {
+    body { padding: 8px; }
+    .calculator, .calculator.scientific { padding: 12px; border-radius: 20px; }
+    .segmented button { padding: 7px 10px; }
+    .display { min-height: 122px; }
+    .result { font-size: 33px; }
+    .keypad { grid-auto-rows: 43px; gap: 6px; }
+    .scientific-keypad { grid-auto-rows: 41px; }
+    .key { font-size: 16px; border-radius: 10px; }
+    .key-fn { font-size: 10.5px; }
+    .memory-key { font-size: 8px; }
+  }
+
+  @media (max-width: 620px) and (max-height: 680px) {
+    body { padding: 8px; }
+    .calculator, .calculator.scientific { padding: 12px; }
+    .topbar { margin-bottom: 8px; }
+    .brand-mark { width: 35px; height: 35px; border-radius: 11px; }
+    .mode-row { margin-bottom: 7px; }
+    .display { min-height: 108px; padding: 10px 12px; }
+    .result { font-size: 34px; }
+    .result.size-md { font-size: 28px; }
+    .result.size-sm { font-size: 23px; }
+    .result.size-xs { font-size: 18px; }
+    .memory-strip { margin-top: 6px; }
+    .keypad { margin-top: 6px; gap: 6px; grid-auto-rows: 38px; }
+    .scientific-keypad { grid-auto-rows: 36px; }
+    .key { border-radius: 10px; font-size: 16px; }
+    .key-op { font-size: 17px; }
+    .key-fn { font-size: 10px; }
+    .key-equals { font-size: 19px; }
+    .footer-bar { display: none; }
+  }
+
+  @media (max-height: 720px) and (min-width: 621px) {
+    body { padding: 14px 18px; }
+    .calculator { padding: 16px; }
+    .topbar { margin-bottom: 11px; }
+    .mode-row { margin-bottom: 9px; }
+    .display { min-height: 128px; }
+    .keypad { grid-auto-rows: 46px; }
+    .scientific-keypad { grid-auto-rows: 43px; }
+    .footer-bar { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+    <div class="orb orb-c"></div>
+  </div>
+  <main class="workspace">
+    <section class="calculator" id="calculator" aria-label="Scientific calculator">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round">
+              <circle cx="12" cy="12" r="2.1" fill="currentColor" stroke="none"></circle>
+              <ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(-33 12 12)"></ellipse>
+              <ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(33 12 12)" opacity=".55"></ellipse>
+              <circle cx="20" cy="6.3" r="1.15" fill="currentColor" stroke="none"></circle>
+            </svg>
+          </div>
+          <div>
+            <span class="eyebrow">Precision engine</span>
+            <h1>NOVA <span>Scientific</span></h1>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button type="button" class="icon-btn" id="historyToggle" aria-label="Open history" aria-expanded="false" title="History">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 12a9 9 0 1 0 2.64-6.36L3 8.3"></path>
+              <path d="M3 3v5.3h5.3"></path>
+              <path d="M12 7.6v4.8l3 1.8"></path>
+            </svg>
+            <span class="history-count" id="historyCount">0</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="mode-row">
+        <div class="segmented" role="group" aria-label="Keypad mode">
+          <button type="button" data-mode="standard" class="active" aria-pressed="true">Standard</button>
+          <button type="button" data-mode="scientific" aria-pressed="false">Scientific</button>
+        </div>
+        <button type="button" class="angle-toggle" data-action="angle" aria-label="Toggle angle mode" title="Toggle degrees / radians">
+          <span class="angle-dot" aria-hidden="true"></span>
+          <span id="angleButtonLabel">DEG</span>
+        </button>
+      </div>
+
+      <div class="display" id="display">
+        <div class="display-meta">
+          <div class="meta-left">
+            <span class="memory-badge" id="memoryBadge" hidden>M <span id="memoryBadgeValue">0</span></span>
+            <span class="angle-badge" id="angleBadge">DEG</span>
+          </div>
+          <span class="live-status" id="liveStatus"><i aria-hidden="true"></i> <span id="liveStatusText">live</span></span>
+        </div>
+        <div class="expression-wrap">
+          <div class="expression" id="expression" aria-label="Current expression">0</div>
+        </div>
+        <div class="result-row">
+          <span class="result-prefix" id="resultPrefix" aria-hidden="true">=</span>
+          <div class="result" id="result" role="status" aria-live="polite">0</div>
+          <button type="button" class="copy-btn" id="copyButton" aria-label="Copy result" title="Copy result" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+              <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="memory-strip" role="group" aria-label="Memory controls">
+        <button type="button" class="memory-key" data-action="memory-clear" title="Clear memory (MC)">MC</button>
+        <button type="button" class="memory-key" data-action="memory-recall" title="Recall memory (MR)">MR</button>
+        <button type="button" class="memory-key" data-action="memory-add" title="Add to memory (M+)">M+</button>
+        <button type="button" class="memory-key" data-action="memory-subtract" title="Subtract from memory (M−)">M−</button>
+      </div>
+
+      <div class="keypad standard-keypad" id="standardKeypad" aria-label="Standard keypad">
+        <button type="button" class="key key-clear" data-action="clear" aria-label="Clear all">AC</button>
+        <button type="button" class="key key-utility" data-action="backspace" aria-label="Delete last character">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1Z"></path>
+            <path d="m17 9-4 6M13 9l4 6"></path>
+          </svg>
+        </button>
+        <button type="button" class="key key-utility" data-insert="%" aria-label="Percent">%</button>
+        <button type="button" class="key key-op" data-insert="/" aria-label="Divide">÷</button>
+
+        <button type="button" class="key" data-insert="7">7</button>
+        <button type="button" class="key" data-insert="8">8</button>
+        <button type="button" class="key" data-insert="9">9</button>
+        <button type="button" class="key key-op" data-insert="*" aria-label="Multiply">×</button>
+
+        <button type="button" class="key" data-insert="4">4</button>
+        <button type="button" class="key" data-insert="5">5</button>
+        <button type="button" class="key" data-insert="6">6</button>
+        <button type="button" class="key key-op" data-insert="-" aria-label="Subtract">−</button>
+
+        <button type="button" class="key" data-insert="1">1</button>
+        <button type="button" class="key" data-insert="2">2</button>
+        <button type="button" class="key" data-insert="3">3</button>
+        <button type="button" class="key key-op" data-insert="+" aria-label="Add">+</button>
+
+        <button type="button" class="key key-utility" data-action="sign" aria-label="Toggle sign">±</button>
+        <button type="button" class="key" data-insert="0">0</button>
+        <button type="button" class="key" data-insert="." aria-label="Decimal point">.</button>
+        <button type="button" class="key key-equals" data-action="equals" aria-label="Equals">=</button>
+      </div>
+
+      <div class="keypad scientific-keypad" id="scientificKeypad" aria-label="Scientific keypad" hidden>
+        <button type="button" class="key key-fn" data-insert="sin(">sin</button>
+        <button type="button" class="key key-fn" data-insert="cos(">cos</button>
+        <button type="button" class="key key-fn" data-insert="tan(">tan</button>
+        <button type="button" class="key key-fn" data-insert="log(">log</button>
+        <button type="button" class="key key-fn" data-insert="ln(">ln</button>
+
+        <button type="button" class="key key-const" data-insert="π" aria-label="Pi">π</button>
+        <button type="button" class="key key-const" data-insert="e" aria-label="Euler's number">e</button>
+        <button type="button" class="key key-fn key-math" data-insert="^" aria-label="Power">x<sup>y</sup></button>
+        <button type="button" class="key key-fn key-math" data-insert="sqrt(" aria-label="Square root"><span class="sqrt-symbol">√</span><span class="key-sub">x</span></button>
+        <button type="button" class="key key-fn" data-insert="!" aria-label="Factorial">x!</button>
+
+        <button type="button" class="key key-fn" data-insert="(" aria-label="Open parenthesis">(</button>
+        <button type="button" class="key key-fn" data-insert=")" aria-label="Close parenthesis">)</button>
+        <button type="button" class="key key-utility" data-insert="%" aria-label="Percent">%</button>
+        <button type="button" class="key key-clear" data-action="clear" aria-label="Clear all">AC</button>
+        <button type="button" class="key key-utility" data-action="backspace" aria-label="Delete last character">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1Z"></path>
+            <path d="m17 9-4 6M13 9l4 6"></path>
+          </svg>
+        </button>
+
+        <button type="button" class="key" data-insert="7">7</button>
+        <button type="button" class="key" data-insert="8">8</button>
+        <button type="button" class="key" data-insert="9">9</button>
+        <button type="button" class="key key-op" data-insert="/" aria-label="Divide">÷</button>
+        <button type="button" class="key key-op" data-insert="*" aria-label="Multiply">×</button>
+
+        <button type="button" class="key" data-insert="4">4</button>
+        <button type="button" class="key" data-insert="5">5</button>
+        <button type="button" class="key" data-insert="6">6</button>
+        <button type="button" class="key key-op" data-insert="-" aria-label="Subtract">−</button>
+        <button type="button" class="key key-op" data-insert="+" aria-label="Add">+</button>
+
+        <button type="button" class="key" data-insert="1">1</button>
+        <button type="button" class="key" data-insert="2">2</button>
+        <button type="button" class="key" data-insert="3">3</button>
+        <button type="button" class="key key-utility" data-action="sign" aria-label="Toggle sign">±</button>
+        <button type="button" class="key key-equals" data-action="equals" aria-label="Equals">=</button>
+
+        <button type="button" class="key" data-insert="0">0</button>
+        <button type="button" class="key" data-insert="." aria-label="Decimal point">.</button>
+        <button type="button" class="key key-utility key-ans" data-action="ans" aria-label="Previous answer">Ans</button>
+      </div>
+
+      <div class="footer-bar" aria-hidden="true">
+        <span><kbd>Enter</kbd> solve</span>
+        <span class="sep"></span>
+        <span><kbd>Esc</kbd> clear</span>
+        <span class="sep"></span>
+        <span><kbd>⌫</kbd> delete</span>
+      </div>
+    </section>
+  </main>
+
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <aside class="history-drawer" id="historyDrawer" role="dialog" aria-modal="true" aria-labelledby="historyTitle" aria-hidden="true" tabindex="-1">
+    <div class="drawer-head">
+      <div>
+        <span class="eyebrow">Session tape</span>
+        <h2 id="historyTitle">History</h2>
+      </div>
+      <div class="drawer-actions">
+        <button type="button" class="drawer-btn" id="clearHistoryButton">Clear</button>
+        <button type="button" class="drawer-btn icon-only" data-action="close-history" aria-label="Close history">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="drawer-rule"></div>
+    <div class="history-list" id="historyList"></div>
+    <div class="drawer-foot">Click a calculation to load it. Use <strong>↳</strong> to reuse its result.</div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+  (() => {
+    'use strict';
+
+    /* ===== SAFE PARSER START ===== */
+    const FUNCTIONS = new Set(['sin', 'cos', 'tan', 'log', 'ln', 'sqrt']);
+
+    class CalcError extends Error {
+      constructor(message, kind = 'invalid') {
+        super(message);
+        this.name = 'CalcError';
+        this.kind = kind;
+      }
+    }
+
+    const isDigit = (char) => char >= '0' && char <= '9';
+
+    function normalizeExpression(source) {
+      return String(source)
+        .replace(/[×·]/g, '*')
+        .replace(/÷/g, '/')
+        .replace(/[−–—]/g, '-');
+    }
+
+    function tokenize(source) {
+      const input = normalizeExpression(source);
+      const tokens = [];
+      let index = 0;
+
+      while (index < input.length) {
+        const char = input[index];
+
+        if (/\s/.test(char)) {
+          index += 1;
+          continue;
+        }
+
+        if (isDigit(char) || char === '.') {
+          const start = index;
+          let dotCount = 0;
+
+          while (index < input.length && (isDigit(input[index]) || input[index] === '.')) {
+            if (input[index] === '.') {
+              dotCount += 1;
+              if (dotCount > 1) {
+                throw new CalcError('A number can only contain one decimal point', 'invalid');
+              }
+            }
+            index += 1;
+          }
+
+          if (input[index] === 'e' || input[index] === 'E') {
+            let lookahead = index + 1;
+            if (input[lookahead] === '+' || input[lookahead] === '-') lookahead += 1;
+            if (isDigit(input[lookahead])) {
+              index = lookahead;
+              while (isDigit(input[index])) index += 1;
+            }
+          }
+
+          const raw = input.slice(start, index);
+          if (raw === '.') {
+            throw new CalcError('A decimal point needs a digit', 'invalid');
+          }
+
+          const value = Number(raw);
+          if (!Number.isFinite(value)) {
+            throw new CalcError('That number is too large', 'math');
+          }
+
+          tokens.push({ type: 'number', value, raw });
+          continue;
+        }
+
+        if (/[a-zA-Z]/.test(char)) {
+          const start = index;
+          while (index < input.length && /[a-zA-Z]/.test(input[index])) index += 1;
+          const name = input.slice(start, index).toLowerCase();
+
+          if (FUNCTIONS.has(name)) {
+            tokens.push({ type: 'function', value: name });
+          } else if (name === 'pi') {
+            tokens.push({ type: 'constant', value: Math.PI, symbol: 'pi' });
+          } else if (name === 'e') {
+            tokens.push({ type: 'constant', value: Math.E, symbol: 'e' });
+          } else {
+            throw new CalcError(`Unknown symbol "${name}"`, 'invalid');
+          }
+          continue;
+        }
+
+        if (char === 'π') {
+          tokens.push({ type: 'constant', value: Math.PI, symbol: 'pi' });
+          index += 1;
+          continue;
+        }
+
+        if ('+-*/^!%()'.includes(char)) {
+          tokens.push({ type: char, raw: char });
+          index += 1;
+          continue;
+        }
+
+        throw new CalcError(`Unsupported character "${char}"`, 'invalid');
+      }
+
+      return tokens;
+    }
+
+    function factorial(value) {
+      if (!Number.isInteger(value) || value < 0) {
+        throw new CalcError('Factorial needs a non-negative whole number', 'math');
+      }
+      if (value > 170) {
+        throw new CalcError('Factorial is too large', 'math');
+      }
+
+      let result = 1;
+      for (let number = 2; number <= value; number += 1) result *= number;
+      return result;
+    }
+
+    function tidyTrig(value) {
+      return Math.abs(value) < 1e-12 ? 0 : value;
+    }
+
+    function applyFunction(name, value, angleMode) {
+      if (!Number.isFinite(value)) {
+        throw new CalcError('Function input is outside the supported range', 'math');
+      }
+
+      const radians = angleMode === 'DEG' ? (value * Math.PI) / 180 : value;
+
+      switch (name) {
+        case 'sin':
+          return tidyTrig(Math.sin(radians));
+        case 'cos':
+          return tidyTrig(Math.cos(radians));
+        case 'tan': {
+          const cosine = Math.cos(radians);
+          if (Math.abs(cosine) < 1e-12) {
+            throw new CalcError('Tangent is undefined at this angle', 'math');
+          }
+          return tidyTrig(Math.tan(radians));
+        }
+        case 'log':
+          if (value <= 0) {
+            throw new CalcError('log is only defined for positive numbers', 'math');
+          }
+          return Math.log10(value);
+        case 'ln':
+          if (value <= 0) {
+            throw new CalcError('ln is only defined for positive numbers', 'math');
+          }
+          return Math.log(value);
+        case 'sqrt':
+          if (value < 0) {
+            throw new CalcError('Cannot take the square root of a negative number', 'math');
+          }
+          return Math.sqrt(value);
+        default:
+          throw new CalcError('Unknown function', 'invalid');
+      }
+    }
+
+    class Parser {
+      constructor(tokens, angleMode) {
+        this.tokens = tokens;
+        this.position = 0;
+        this.angleMode = angleMode === 'RAD' ? 'RAD' : 'DEG';
+      }
+
+      isAtEnd() {
+        return this.position >= this.tokens.length;
+      }
+
+      peek() {
+        return this.tokens[this.position];
+      }
+
+      advance() {
+        const token = this.tokens[this.position];
+        this.position += 1;
+        return token;
+      }
+
+      match(type) {
+        if (!this.isAtEnd() && this.peek().type === type) {
+          this.position += 1;
+          return true;
+        }
+        return false;
+      }
+
+      expect(type) {
+        if (this.isAtEnd()) {
+          throw new CalcError('Incomplete expression', 'incomplete');
+        }
+        if (this.peek().type !== type) {
+          throw new CalcError('Check the parentheses and operators', 'invalid');
+        }
+        return this.advance();
+      }
+
+      parse() {
+        if (this.tokens.length === 0) {
+          throw new CalcError('Enter an expression', 'empty');
+        }
+
+        const value = this.parseExpression();
+
+        if (!this.isAtEnd()) {
+          if (this.peek().type === ')') {
+            throw new CalcError('Mismatched parentheses', 'invalid');
+          }
+          throw new CalcError('Unexpected symbol in expression', 'invalid');
+        }
+
+        return value;
+      }
+
+      parseExpression() {
+        let value = this.parseTerm();
+
+        while (true) {
+          if (this.match('+')) {
+            value += this.parseTerm();
+          } else if (this.match('-')) {
+            value -= this.parseTerm();
+          } else {
+            break;
+          }
+        }
+
+        return value;
+      }
+
+      startsImplicitFactor() {
+        if (this.isAtEnd()) return false;
+        const type = this.peek().type;
+        return type === 'number' || type === 'constant' || type === 'function' || type === '(';
+      }
+
+      parseTerm() {
+        let value = this.parseUnary();
+
+        while (true) {
+          if (this.match('*')) {
+            value *= this.parseUnary();
+          } else if (this.match('/')) {
+            const divisor = this.parseUnary();
+            if (divisor === 0) {
+              throw new CalcError('Cannot divide by zero', 'math');
+            }
+            value /= divisor;
+          } else if (this.startsImplicitFactor()) {
+            value *= this.parseUnary();
+          } else {
+            break;
+          }
+        }
+
+        return value;
+      }
+
+      parseUnary() {
+        if (this.match('+')) return this.parseUnary();
+        if (this.match('-')) return -this.parseUnary();
+        return this.parsePower();
+      }
+
+      parsePower() {
+        let value = this.parsePostfix();
+
+        if (this.match('^')) {
+          const exponent = this.parseUnary();
+          value = Math.pow(value, exponent);
+        }
+
+        return value;
+      }
+
+      parsePostfix() {
+        let value = this.parsePrimary();
+
+        while (true) {
+          if (this.match('!')) {
+            value = factorial(value);
+          } else if (this.match('%')) {
+            value /= 100;
+          } else {
+            break;
+          }
+        }
+
+        return value;
+      }
+
+      parsePrimary() {
+        if (this.isAtEnd()) {
+          throw new CalcError('Incomplete expression', 'incomplete');
+        }
+
+        const token = this.advance();
+
+        if (token.type === 'number') return token.value;
+        if (token.type === 'constant') return token.value;
+
+        if (token.type === 'function') {
+          this.expect('(');
+          if (!this.isAtEnd() && this.peek().type === ')') {
+            throw new CalcError('This function needs a value', 'incomplete');
+          }
+          const argument = this.parseExpression();
+          this.expect(')');
+          return applyFunction(token.value, argument, this.angleMode);
+        }
+
+        if (token.type === '(') {
+          if (!this.isAtEnd() && this.peek().type === ')') {
+            throw new CalcError('Parentheses cannot be empty', 'incomplete');
+          }
+          const value = this.parseExpression();
+          this.expect(')');
+          return value;
+        }
+
+        if (token.type === ')') {
+          throw new CalcError('Mismatched parentheses', 'invalid');
+        }
+
+        throw new CalcError('Expression is incomplete', 'incomplete');
+      }
+    }
+
+    function closeOpenParentheses(source) {
+      const tokens = tokenize(source);
+      let depth = 0;
+
+      for (const token of tokens) {
+        if (token.type === '(') depth += 1;
+        if (token.type === ')') {
+          depth -= 1;
+          if (depth < 0) {
+            throw new CalcError('Mismatched parentheses', 'invalid');
+          }
+        }
+      }
+
+      return depth > 0 ? source + ')'.repeat(depth) : source;
+    }
+
+    function evaluateExpression(expression, angleMode = 'DEG', options = {}) {
+      if (typeof expression !== 'string' || !expression.trim()) {
+        throw new CalcError('Enter an expression', 'empty');
+      }
+
+      const source = options.autoClose ? closeOpenParentheses(expression) : expression;
+      const tokens = tokenize(source);
+      const parser = new Parser(tokens, angleMode);
+      const value = parser.parse();
+
+      if (Number.isNaN(value)) {
+        throw new CalcError('Result is not a real number', 'math');
+      }
+      if (!Number.isFinite(value)) {
+        throw new CalcError('Result is outside the supported range', 'math');
+      }
+
+      return Object.is(value, -0) ? 0 : value;
+    }
+    /* ===== SAFE PARSER END ===== */
+
+    const STORAGE = {
+      history: 'nova.calculator.history.v1',
+      memory: 'nova.calculator.memory.v1',
+      mode: 'nova.calculator.mode.v1',
+      angle: 'nova.calculator.angle.v1'
+    };
+
+    const MAX_HISTORY = 60;
+    const MAX_EXPRESSION_LENGTH = 220;
+
+    const state = {
+      expression: '',
+      mode: 'standard',
+      angle: 'DEG',
+      memory: 0,
+      hasMemory: false,
+      history: [],
+      lastAnswer: null,
+      completed: false,
+      error: null
+    };
+
+    const elements = {
+      calculator: document.getElementById('calculator'),
+      expression: document.getElementById('expression'),
+      result: document.getElementById('result'),
+      resultPrefix: document.getElementById('resultPrefix'),
+      display: document.getElementById('display'),
+      liveStatus: document.getElementById('liveStatus'),
+      angleBadge: document.getElementById('angleBadge'),
+      angleButtonLabel: document.getElementById('angleButtonLabel'),
+      memoryBadge: document.getElementById('memoryBadge'),
+      memoryBadgeValue: document.getElementById('memoryBadgeValue'),
+      standardKeypad: document.getElementById('standardKeypad'),
+      scientificKeypad: document.getElementById('scientificKeypad'),
+      historyToggle: document.getElementById('historyToggle'),
+      historyCount: document.getElementById('historyCount'),
+      historyDrawer: document.getElementById('historyDrawer'),
+      historyList: document.getElementById('historyList'),
+      drawerBackdrop: document.getElementById('drawerBackdrop'),
+      clearHistoryButton: document.getElementById('clearHistoryButton'),
+      copyButton: document.getElementById('copyButton'),
+      toast: document.getElementById('toast'),
+      modeButtons: Array.from(document.querySelectorAll('[data-mode]'))
+    };
+    function safeRead(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw === null ? fallback : JSON.parse(raw);
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function safeWrite(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (error) {
+        /* Storage can be unavailable in private contexts; the calculator still works. */
+      }
+    }
+
+    function loadSavedState() {
+      const savedMode = safeRead(STORAGE.mode, null);
+      if (savedMode === 'standard' || savedMode === 'scientific') state.mode = savedMode;
+
+      const savedAngle = safeRead(STORAGE.angle, null);
+      if (savedAngle === 'DEG' || savedAngle === 'RAD') state.angle = savedAngle;
+
+      const savedMemory = safeRead(STORAGE.memory, null);
+      if (savedMemory && typeof savedMemory.value === 'number' && Number.isFinite(savedMemory.value)) {
+        state.memory = savedMemory.value;
+        state.hasMemory = Boolean(savedMemory.active);
+      }
+
+      const savedHistory = safeRead(STORAGE.history, null);
+      if (Array.isArray(savedHistory)) {
+        state.history = savedHistory
+          .filter((item) => (
+            item
+            && typeof item.expression === 'string'
+            && typeof item.result === 'number'
+            && Number.isFinite(item.result)
+          ))
+          .slice(0, MAX_HISTORY)
+          .map((item) => ({
+            expression: item.expression.slice(0, MAX_EXPRESSION_LENGTH),
+            result: item.result,
+            angle: item.angle === 'RAD' ? 'RAD' : 'DEG',
+            at: Number.isFinite(item.at) ? item.at : Date.now()
+          }));
+      }
+    }
+
+    function persistHistory() {
+      safeWrite(STORAGE.history, state.history);
+    }
+
+    function persistMemory() {
+      safeWrite(STORAGE.memory, { value: state.memory, active: state.hasMemory });
+    }
+
+    function persistMode() {
+      safeWrite(STORAGE.mode, state.mode);
+    }
+
+    function persistAngle() {
+      safeWrite(STORAGE.angle, state.angle);
+    }
+
+    function formatNumber(value) {
+      if (!Number.isFinite(value)) return 'Undefined';
+      if (Object.is(value, -0)) value = 0;
+      if (value === 0) return '0';
+
+      const absolute = Math.abs(value);
+
+      if (absolute < 1e-9 || absolute >= 1e15) {
+        let text = value.toExponential(9)
+          .replace(/(\.\d*?[1-9])0+e/, '$1e')
+          .replace(/\.0+e/, 'e');
+        const negative = text.startsWith('-');
+        if (negative) text = text.slice(1);
+        text = text.replace('e+', 'e');
+        return `${negative ? '−' : ''}${text}`;
+      }
+
+      const rounded = Number.parseFloat(value.toPrecision(12));
+      let text = rounded.toString();
+      const negative = text.startsWith('-');
+      if (negative) text = text.slice(1);
+
+      if (/e/i.test(text)) {
+        let [mantissa, exponent] = text.toLowerCase().split('e');
+        mantissa = mantissa.replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
+        exponent = exponent.replace('+', '');
+        return `${negative ? '−' : ''}${mantissa}e${exponent}`;
+      }
+
+      const parts = text.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return `${negative ? '−' : ''}${parts[0]}${parts[1] ? `.${parts[1]}` : ''}`;
+    }
+
+    function rawNumber(value) {
+      if (!Number.isFinite(value)) return '0';
+      if (Object.is(value, -0)) value = 0;
+      return String(Number(value.toPrecision(15)));
+    }
+
+    function rawLiteral(value) {
+      const text = rawNumber(value);
+      return /[eE]/.test(text) ? `(${text})` : text;
+    }
+
+    function prettyExpression(expression) {
+      if (!expression) return '';
+      return expression
+        .replace(/sqrt\(/g, '√(')
+        .replace(/\*/g, '×')
+        .replace(/\//g, '÷')
+        .replace(/-/g, '−');
+    }
+
+    function updateModeUI() {
+      elements.calculator.classList.toggle('scientific', state.mode === 'scientific');
+      elements.standardKeypad.hidden = state.mode !== 'standard';
+      elements.scientificKeypad.hidden = state.mode !== 'scientific';
+
+      for (const button of elements.modeButtons) {
+        const active = button.dataset.mode === state.mode;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      }
+    }
+
+    function updateAngleUI() {
+      elements.angleBadge.textContent = state.angle;
+      elements.angleButtonLabel.textContent = state.angle;
+      const angleButton = document.querySelector('[data-action="angle"]');
+      if (angleButton) {
+        angleButton.setAttribute('aria-label', `Angle mode ${state.angle}. Click to switch.`);
+        angleButton.title = `Switch to ${state.angle === 'DEG' ? 'radians' : 'degrees'}`;
+      }
+    }
+
+    function updateMemoryUI() {
+      elements.memoryBadge.hidden = !state.hasMemory;
+      if (state.hasMemory) {
+        elements.memoryBadgeValue.textContent = formatNumber(state.memory);
+        elements.memoryBadge.title = `Memory: ${formatNumber(state.memory)}`;
+      } else {
+        elements.memoryBadgeValue.textContent = '0';
+        elements.memoryBadge.removeAttribute('title');
+      }
+    }
+
+    function setLiveStatus(text, tone = '') {
+      const textNode = document.getElementById('liveStatusText');
+      if (textNode) textNode.textContent = text;
+      elements.liveStatus.dataset.tone = tone;
+    }
+
+    let toastTimer = 0;
+
+    function showToast(message) {
+      elements.toast.textContent = message;
+      elements.toast.classList.add('show');
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => {
+        elements.toast.classList.remove('show');
+      }, 2100);
+    }
+
+    let flashTimer = 0;
+
+    function flashDisplay(className) {
+      elements.display.classList.remove('screen-flash', 'screen-error');
+      void elements.display.offsetWidth;
+      elements.display.classList.add(className);
+      window.clearTimeout(flashTimer);
+      flashTimer = window.setTimeout(() => {
+        elements.display.classList.remove(className);
+      }, 520);
+    }
+
+    function setResult(text, options = {}) {
+      elements.result.className = 'result';
+
+      if (options.error) {
+        elements.result.classList.add('is-error');
+      } else {
+        if (options.muted) elements.result.classList.add('is-muted');
+        if (text.length > 26) elements.result.classList.add('size-xs');
+        else if (text.length > 19) elements.result.classList.add('size-sm');
+        else if (text.length > 13) elements.result.classList.add('size-md');
+      }
+
+      elements.result.textContent = text;
+      elements.resultPrefix.classList.toggle('is-error', Boolean(options.error));
+      elements.resultPrefix.textContent = options.error ? '!' : '=';
+    }
+
+    function setCopyValue(value) {
+      if (value == null) {
+        elements.copyButton.disabled = true;
+        delete elements.copyButton.dataset.value;
+        return;
+      }
+      elements.copyButton.disabled = false;
+      elements.copyButton.dataset.value = value;
+    }
+
+    function updateDisplay(options = {}) {
+      const scroll = options.scroll !== false;
+      const expression = state.expression;
+
+      elements.expression.textContent = prettyExpression(expression) || '0';
+      elements.angleBadge.textContent = state.angle;
+
+      if (state.error) {
+        setResult(state.error, { error: true });
+        setCopyValue(null);
+        setLiveStatus('error', 'error');
+      } else if (!expression) {
+        setResult('0', { muted: true });
+        setCopyValue(null);
+        setLiveStatus('ready');
+      } else {
+        try {
+          const value = evaluateExpression(expression, state.angle, { autoClose: true });
+          setResult(formatNumber(value));
+          setCopyValue(rawNumber(value));
+          setLiveStatus('live');
+        } catch (error) {
+          const calcError = error instanceof CalcError ? error : null;
+
+          if (calcError && calcError.kind === 'math') {
+            setResult('Undefined', { muted: true });
+            setLiveStatus('check', 'error');
+          } else if (calcError && (calcError.kind === 'empty' || calcError.kind === 'incomplete')) {
+            setResult('…', { muted: true });
+            setLiveStatus('typing');
+          } else {
+            setResult('Check expression', { muted: true });
+            setLiveStatus('check', 'error');
+          }
+
+          setCopyValue(null);
+        }
+      }
+
+      if (scroll) {
+        requestAnimationFrame(() => {
+          elements.expression.scrollLeft = elements.expression.scrollWidth;
+        });
+      }
+    }
+    const BINARY_OPERATORS = new Set(['+', '-', '*', '/', '^']);
+
+    function renderHistory() {
+      elements.historyList.replaceChildren();
+      elements.historyCount.textContent = String(state.history.length);
+      elements.historyCount.hidden = state.history.length === 0;
+
+      if (state.history.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-history';
+        empty.innerHTML = `
+          <div class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 2.64-6.36L3 8.3"></path>
+              <path d="M3 3v5.3h5.3"></path>
+              <path d="M12 7.6v4.8l3 1.8"></path>
+            </svg>
+          </div>
+          <div>
+            <strong>No calculations yet</strong>
+            <p>Your solved expressions will appear here, ready to load or reuse.</p>
+          </div>
+        `;
+        elements.historyList.append(empty);
+        return;
+      }
+
+      state.history.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'history-item';
+
+        const main = document.createElement('button');
+        main.type = 'button';
+        main.className = 'history-main';
+        main.dataset.historyIndex = String(index);
+        main.title = `Load ${item.expression}`;
+        main.setAttribute('aria-label', `Load calculation ${item.expression}`);
+
+        const top = document.createElement('span');
+        top.className = 'history-main-top';
+
+        const expression = document.createElement('span');
+        expression.className = 'history-expression';
+        expression.textContent = prettyExpression(item.expression) || '0';
+
+        const angle = document.createElement('span');
+        angle.className = 'history-angle';
+        angle.textContent = item.angle;
+
+        top.append(expression, angle);
+
+        const result = document.createElement('span');
+        result.className = 'history-result';
+        result.textContent = `= ${formatNumber(item.result)}`;
+
+        main.append(top, result);
+
+        const insert = document.createElement('button');
+        insert.type = 'button';
+        insert.className = 'history-insert';
+        insert.dataset.historyInsert = String(index);
+        insert.title = `Reuse result ${formatNumber(item.result)}`;
+        insert.setAttribute('aria-label', `Reuse result ${formatNumber(item.result)}`);
+        insert.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 10 4 15l5 5"></path>
+            <path d="M4 15h9a7 7 0 0 0 7-7V4"></path>
+          </svg>
+        `;
+
+        row.append(main, insert);
+        elements.historyList.append(row);
+      });
+    }
+
+    function addHistory(expression, result) {
+      const first = state.history[0];
+      const isDuplicate = first
+        && first.expression === expression
+        && first.angle === state.angle
+        && Math.abs(first.result - result) <= Math.max(1e-12, Math.abs(result) * 1e-12);
+
+      if (isDuplicate) {
+        first.at = Date.now();
+      } else {
+        state.history.unshift({
+          expression,
+          result,
+          angle: state.angle,
+          at: Date.now()
+        });
+      }
+
+      state.history = state.history.slice(0, MAX_HISTORY);
+      persistHistory();
+      renderHistory();
+    }
+
+    function openHistory() {
+      renderHistory();
+      elements.historyDrawer.classList.add('open');
+      elements.drawerBackdrop.classList.add('open');
+      elements.historyDrawer.setAttribute('aria-hidden', 'false');
+      elements.historyToggle.setAttribute('aria-expanded', 'true');
+      document.body.classList.add('history-open');
+      elements.historyDrawer.focus({ preventScroll: true });
+    }
+
+    function closeHistory() {
+      if (document.activeElement instanceof HTMLElement && elements.historyDrawer.contains(document.activeElement)) {
+        document.activeElement.blur();
+      }
+
+      elements.historyDrawer.classList.remove('open');
+      elements.drawerBackdrop.classList.remove('open');
+      elements.historyDrawer.setAttribute('aria-hidden', 'true');
+      elements.historyToggle.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('history-open');
+    }
+
+    function toggleHistory() {
+      if (elements.historyDrawer.classList.contains('open')) closeHistory();
+      else openHistory();
+    }
+
+    function reuseHistoryExpression(index) {
+      const item = state.history[index];
+      if (!item) return;
+
+      state.expression = item.expression;
+      state.completed = false;
+      state.error = null;
+
+      if (state.angle !== item.angle) {
+        state.angle = item.angle;
+        updateAngleUI();
+        persistAngle();
+      }
+
+      updateDisplay();
+      closeHistory();
+      showToast('Calculation loaded');
+    }
+
+    function reuseHistoryResult(index) {
+      const item = state.history[index];
+      if (!item) return;
+
+      state.expression = rawLiteral(item.result);
+      state.completed = false;
+      state.error = null;
+      updateDisplay();
+      closeHistory();
+      showToast('Result reused');
+    }
+
+    function clearHistory() {
+      if (state.history.length === 0) {
+        showToast('History is already empty');
+        return;
+      }
+      state.history = [];
+      persistHistory();
+      renderHistory();
+      showToast('History cleared');
+    }
+
+    function prepareForInput(value) {
+      if (state.completed) {
+        if (state.lastAnswer != null && (BINARY_OPERATORS.has(value) || value === '!' || value === '%')) {
+          state.expression = rawLiteral(state.lastAnswer);
+        } else {
+          state.expression = '';
+        }
+        state.completed = false;
+      }
+      state.error = null;
+    }
+
+    function insertToken(value) {
+      if (typeof value !== 'string' || value.length === 0) return;
+      if (state.completed && value === ')') return;
+
+      prepareForInput(value);
+      let expression = state.expression;
+
+      if (value === '.') {
+        const trailing = expression.match(/(\d*\.?\d*)$/)[0];
+        const numericTail = expression.match(/([0-9.]+(?:[eE][+-]?\d+)?)$/)?.[0] || '';
+
+        if (trailing.includes('.') || /[eE]/.test(numericTail)) return;
+
+        if (trailing === '') {
+          const last = expression.slice(-1);
+          if (expression && !/[+\-*/^(]$/.test(last)) return;
+          value = '0.';
+        }
+      }
+
+      if (value === ')') {
+        if (!expression || /[+\-*/^(]$/.test(expression)) return;
+      }
+
+      if (value === '!' || value === '%') {
+        if (!expression || /[+\-*/^(]$/.test(expression)) return;
+      }
+
+      if (BINARY_OPERATORS.has(value)) {
+        const last = expression.slice(-1);
+
+        if (!expression && value !== '-') return;
+        if (expression && last === '(' && value !== '-') return;
+
+        if (expression && /[+\-*/^]$/.test(last)) {
+          const allowNegative = value === '-' && /[*/^]$/.test(last);
+          if (!allowNegative) {
+            expression = expression.slice(0, -1) + value;
+            if (expression.length === 1 && expression !== '-') return;
+          }
+        }
+      }
+
+      if (value === 'e' && /[0-9.)πe!%]$/.test(expression)) {
+        expression += '*';
+      }
+
+      if (expression.length + value.length > MAX_EXPRESSION_LENGTH) {
+        showToast('Expression is too long');
+        return;
+      }
+
+      state.expression = expression + value;
+      state.completed = false;
+      state.error = null;
+      updateDisplay();
+    }
+
+    function insertRawNumber(raw) {
+      const rawText = String(raw);
+      const text = /[eE]/.test(rawText) ? `(${rawText})` : rawText;
+      prepareForInput('0');
+
+      let expression = state.expression;
+      if (expression && /[0-9.)πe!%]$/.test(expression)) {
+        expression += '*';
+      }
+
+      if (expression.length + text.length > MAX_EXPRESSION_LENGTH) {
+        showToast('Expression is too long');
+        return;
+      }
+
+      state.expression = expression + text;
+      state.completed = false;
+      state.error = null;
+      updateDisplay();
+    }
+
+    function calculate() {
+      if (!state.expression.trim()) {
+        flashDisplay('screen-error');
+        showToast('Enter an expression first');
+        updateDisplay();
+        return;
+      }
+
+      try {
+        const source = closeOpenParentheses(state.expression);
+        const value = evaluateExpression(source, state.angle);
+        state.expression = source;
+        state.lastAnswer = value;
+        state.completed = true;
+        state.error = null;
+        addHistory(source, value);
+        updateDisplay();
+        flashDisplay('screen-flash');
+      } catch (error) {
+        state.completed = false;
+        state.error = error instanceof CalcError ? error.message : 'Could not calculate that expression';
+        updateDisplay();
+        flashDisplay('screen-error');
+      }
+    }
+
+    function clearAll() {
+      state.expression = '';
+      state.completed = false;
+      state.error = null;
+      updateDisplay();
+    }
+
+    function backspace() {
+      if (!state.expression) {
+        state.error = null;
+        updateDisplay();
+        return;
+      }
+
+      const functionMatch = state.expression.match(/(sin|cos|tan|log|ln|sqrt)\($/);
+      if (functionMatch) {
+        state.expression = state.expression.slice(0, -functionMatch[0].length);
+      } else {
+        state.expression = state.expression.slice(0, -1);
+      }
+
+      state.completed = false;
+      state.error = null;
+      updateDisplay();
+    }
+
+    function toggleSign() {
+      if (state.completed && state.lastAnswer != null) {
+        state.expression = rawLiteral(state.lastAnswer);
+        state.completed = false;
+      }
+      state.error = null;
+
+      let expression = state.expression;
+
+      if (!expression) {
+        state.expression = '-';
+        updateDisplay();
+        return;
+      }
+
+      const match = expression.match(/(\d*\.?\d+(?:[eE][+-]?\d+)?)(\)*)$/);
+
+      if (match) {
+        const start = match.index;
+        const before = expression.slice(0, start);
+        const after = match[2];
+
+        if (before.endsWith('-') && (start === 1 || /[+\-*/^(]/.test(before.slice(-2, -1)))) {
+          expression = before.slice(0, -1) + match[1] + after;
+        } else {
+          expression = `${before}-${match[1]}${after}`;
+        }
+      } else if (expression.startsWith('-(') && expression.endsWith(')')) {
+        expression = expression.slice(2, -1);
+      } else {
+        expression = `-(${expression})`;
+      }
+
+      state.expression = expression;
+      state.completed = false;
+      updateDisplay();
+    }
+
+    function setMode(mode) {
+      if (mode !== 'standard' && mode !== 'scientific') return;
+      if (state.mode === mode) return;
+      state.mode = mode;
+      persistMode();
+      updateModeUI();
+      updateDisplay({ scroll: false });
+    }
+
+    function toggleAngle() {
+      state.angle = state.angle === 'DEG' ? 'RAD' : 'DEG';
+      state.completed = false;
+      state.error = null;
+      persistAngle();
+      updateAngleUI();
+      updateDisplay();
+      showToast(`Angle mode: ${state.angle}`);
+    }
+
+    function getCurrentValue() {
+      if (!state.expression.trim()) return null;
+      try {
+        return evaluateExpression(state.expression, state.angle, { autoClose: true });
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function memoryAdd(direction) {
+      const value = getCurrentValue();
+      if (value == null) {
+        showToast('No valid value to store');
+        return;
+      }
+
+      const next = state.memory + direction * value;
+      if (!Number.isFinite(next)) {
+        showToast('Memory value is too large');
+        return;
+      }
+
+      state.memory = next;
+      state.hasMemory = true;
+      updateMemoryUI();
+      persistMemory();
+      showToast(`Memory ${direction > 0 ? '+' : '−'} ${formatNumber(value)}`);
+    }
+
+    function memoryRecall() {
+      if (!state.hasMemory) {
+        showToast('Memory is empty');
+        return;
+      }
+
+      const expression = state.expression;
+      const appendToPending = !state.completed && (!expression || /[+\-*/^(]$/.test(expression));
+
+      if (appendToPending) {
+        insertRawNumber(rawNumber(state.memory));
+      } else {
+        state.expression = rawLiteral(state.memory);
+        state.completed = false;
+        state.error = null;
+        updateDisplay();
+      }
+
+      showToast('Memory recalled');
+    }
+
+    function memoryClear() {
+      state.memory = 0;
+      state.hasMemory = false;
+      updateMemoryUI();
+      persistMemory();
+      showToast('Memory cleared');
+    }
+
+    function useAnswer() {
+      if (state.lastAnswer == null) {
+        showToast('No previous answer yet');
+        return;
+      }
+      insertRawNumber(rawNumber(state.lastAnswer));
+    }
+
+    async function copyText(text) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (error) {
+        /* Fall through to the legacy copy path. */
+      }
+
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.opacity = '0';
+        document.body.append(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        return copied;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    async function copyResult() {
+      const value = elements.copyButton.dataset.value;
+      if (!value) return;
+      const copied = await copyText(value);
+      showToast(copied ? 'Result copied' : 'Could not copy result');
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+      const active = document.activeElement;
+      if (active && (
+        active.tagName === 'INPUT'
+        || active.tagName === 'TEXTAREA'
+        || active.tagName === 'SELECT'
+        || active.isContentEditable
+      )) return;
+
+      const key = event.key;
+
+      if (active && active.tagName === 'BUTTON' && (key === 'Enter' || key === ' ')) {
+        return;
+      }
+
+      if (key === 'Escape') {
+        event.preventDefault();
+        closeHistory();
+        clearAll();
+        return;
+      }
+
+      if (key === 'Enter' || key === '=') {
+        event.preventDefault();
+        calculate();
+        return;
+      }
+
+      if (key === 'Backspace') {
+        event.preventDefault();
+        backspace();
+        return;
+      }
+
+      if (key === 'Delete') {
+        event.preventDefault();
+        clearAll();
+        return;
+      }
+
+      if (/^[0-9]$/.test(key)) {
+        event.preventDefault();
+        insertToken(key);
+        return;
+      }
+
+      if (key === '.' || key === ',') {
+        event.preventDefault();
+        insertToken('.');
+        return;
+      }
+
+      if ('+-*/^!%()'.includes(key)) {
+        event.preventDefault();
+        insertToken(key);
+        return;
+      }
+
+      if (key === '×') {
+        event.preventDefault();
+        insertToken('*');
+        return;
+      }
+
+      if (key === '÷') {
+        event.preventDefault();
+        insertToken('/');
+        return;
+      }
+
+      if (key === '−') {
+        event.preventDefault();
+        insertToken('-');
+        return;
+      }
+
+      const lower = key.toLowerCase();
+      const functionKeys = {
+        s: 'sin(',
+        c: 'cos(',
+        t: 'tan(',
+        l: 'ln(',
+        g: 'log(',
+        r: 'sqrt('
+      };
+
+      if (functionKeys[lower]) {
+        event.preventDefault();
+        insertToken(functionKeys[lower]);
+        return;
+      }
+
+      if (lower === 'p') {
+        event.preventDefault();
+        insertToken('π');
+        return;
+      }
+
+      if (lower === 'e') {
+        event.preventDefault();
+        insertToken('e');
+        return;
+      }
+
+      if (lower === 'a') {
+        event.preventDefault();
+        useAnswer();
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('button');
+      if (!button) return;
+
+      if (event.detail > 0) button.blur();
+
+      if (button.dataset.mode) {
+        setMode(button.dataset.mode);
+        return;
+      }
+
+      if (button.dataset.historyIndex !== undefined) {
+        reuseHistoryExpression(Number(button.dataset.historyIndex));
+        return;
+      }
+
+      if (button.dataset.historyInsert !== undefined) {
+        reuseHistoryResult(Number(button.dataset.historyInsert));
+        return;
+      }
+
+      if (button.dataset.insert !== undefined) {
+        insertToken(button.dataset.insert);
+        return;
+      }
+
+      switch (button.dataset.action) {
+        case 'clear':
+          clearAll();
+          break;
+        case 'backspace':
+          backspace();
+          break;
+        case 'equals':
+          calculate();
+          break;
+        case 'sign':
+          toggleSign();
+          break;
+        case 'angle':
+          toggleAngle();
+          break;
+        case 'ans':
+          useAnswer();
+          break;
+        case 'memory-clear':
+          memoryClear();
+          break;
+        case 'memory-recall':
+          memoryRecall();
+          break;
+        case 'memory-add':
+          memoryAdd(1);
+          break;
+        case 'memory-subtract':
+          memoryAdd(-1);
+          break;
+        case 'close-history':
+          closeHistory();
+          break;
+        default:
+          break;
+      }
+    });
+
+    elements.historyToggle.addEventListener('click', toggleHistory);
+    elements.drawerBackdrop.addEventListener('click', closeHistory);
+    elements.clearHistoryButton.addEventListener('click', clearHistory);
+    elements.copyButton.addEventListener('click', copyResult);
+
+    loadSavedState();
+    updateModeUI();
+    updateAngleUI();
+    updateMemoryUI();
+    renderHistory();
+    updateDisplay({ scroll: false });
+  })();
+  </script>
+</body>
+</html>
