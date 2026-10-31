@@ -1,0 +1,108 @@
+name: Bug report
+description: Report a reproducible problem with the calculator.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve NOVA. Please search existing issues first, and do not
+        report security vulnerabilities here — see [SECURITY.md](https://github.com/somphol/calculator/blob/main/SECURITY.md).
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: The result is wrong when I...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the exact expression and the keys or clicks used.
+      placeholder: |
+        1. Open the calculator
+        2. Switch to Scientific mode
+        3. Enter ...
+        4. Press Enter
+    validations:
+      required: true
+
+  - type: input
+    id: expression
+    attributes:
+      label: Expression
+      description: The exact input, if applicable.
+      placeholder: "sin(30) + 2^5"
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      placeholder: The result should be...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the displayed value or error message.
+      placeholder: Instead, the calculator shows...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Calculator mode
+      options:
+        - Standard
+        - Scientific
+        - Both / not applicable
+
+  - type: dropdown
+    id: angle
+    attributes:
+      label: Angle mode
+      options:
+        - DEG
+        - RAD
+        - Not applicable
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: "Firefox 141 on macOS 15"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Where did you run it?
+      options:
+        - GitHub Pages demo
+        - Downloaded HTML file (file://)
+        - Local server
+        - Fork or modified version
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, console errors, or anything else that helps.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I can reproduce this on the latest version of `main` or the live demo.
+          required: true

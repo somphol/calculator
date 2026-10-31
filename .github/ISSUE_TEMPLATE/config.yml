@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Live demo
+    url: https://somphol.github.io/calculator/
+    about: Try the latest version before filing an issue.
+  - name: Security vulnerability
+    url: https://github.com/somphol/calculator/security/advisories/new
+    about: Report security issues privately. Do not open a public issue.
+  - name: Questions and ideas
+    url: https://github.com/somphol/calculator/discussions
+    about: Ask a question or discuss an idea with the community.
